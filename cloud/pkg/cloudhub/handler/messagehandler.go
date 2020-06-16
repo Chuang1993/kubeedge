@@ -326,6 +326,7 @@ func (mh *MessageHandle) GetNodeCount() int {
 func (mh *MessageHandle) ListMessageWriteLoop(info *model.HubInfo, stopServe chan ExitCode) {
 	nodeListQueue := mh.MessageQueue.GetNodeListQueue(info.NodeID)
 	nodeListStore := mh.MessageQueue.GetNodeListStore(info.NodeID)
+	nodeQueue := mh.MessageQueue.GetNodeQueue(info.NodeID)
 
 	for {
 		key, quit := nodeListQueue.Get()
@@ -342,8 +343,10 @@ func (mh *MessageHandle) ListMessageWriteLoop(info *model.HubInfo, stopServe cha
 		msg := obj.(*beehiveModel.Message)
 
 		if model.IsNodeStopped(msg) {
-			klog.Warningf("node %s is stopped, will disconnect", info.NodeID)
-
+			klog.Warningf("node %s is deleted, data for node will be cleaned up", info.NodeID)
+			nodeQueue.ShutDown()
+			nodeListQueue.ShutDown()
+			stopServe <- nodeStop
 			return
 		}
 		if !model.IsToEdge(msg) {
@@ -388,10 +391,6 @@ func (mh *MessageHandle) MessageWriteLoop(info *model.HubInfo, stopServe chan Ex
 		}
 		msg := obj.(*beehiveModel.Message)
 
-		if model.IsNodeStopped(msg) {
-			klog.Warningf("node %s is stopped, will disconnect", info.NodeID)
-			return
-		}
 		if !model.IsToEdge(msg) {
 			klog.Infof("skip only to cloud event for node %s, %s, content %s", info.NodeID, dumpMessageMetadata(msg), msg.Content)
 			continue
