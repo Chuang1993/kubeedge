@@ -15,4 +15,6 @@ const (
 	UserGroup = "user"
 	// MeshGroup group
 	MeshGroup = "mesh"
+
+	ProxyGroup ="proxy"
 )
