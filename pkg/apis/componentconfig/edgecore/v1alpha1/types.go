@@ -104,6 +104,9 @@ type Modules struct {
 	// EdgeStream indicates edgestream module config
 	// +Required
 	EdgeStream *EdgeStream `json:"edgeStream,omitempty"`
+	// EdgeProxy indicates EdgeProxy module config
+	// +Required
+	EdgeProxy *EdgeProxy `json:"edgeProxy,omitempty"`
 }
 
 // Edged indicates the config fo edged module
@@ -426,4 +429,12 @@ type EdgeStream struct {
 	// WriteDeadline indicates write dead line (second)
 	// default 15
 	WriteDeadline int32 `json:"writeDeadline,omitempty"`
+}
+
+type EdgeProxy struct {
+	// Enable indicates whether edgeproxy is enabled, if set to false (for debugging etc.), skip checking other configs.
+	// default true
+	Enable bool `json:"enable"`
+	// ListenPort ndicates the listen port of EdgeProxy
+	ListenPort int `json:"listenPort"`
 }

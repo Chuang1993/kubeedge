@@ -2,10 +2,15 @@ package server
 
 import (
 	"fmt"
+	"net/http"
+
 	"github.com/gorilla/mux"
+	"k8s.io/apimachinery/pkg/util/sets"
+	"k8s.io/apiserver/pkg/endpoints/filters"
+	"k8s.io/apiserver/pkg/server"
+
 	"github.com/kubeedge/kubeedge/edge/pkg/edgeproxy/config"
 	"github.com/kubeedge/kubeedge/edge/pkg/metamanager/client"
-	"net/http"
 )
 
 func NewProxyServer() *ProxyServer {
@@ -36,8 +41,13 @@ func (ps *ProxyServer) Run() {
 	}
 }
 func (ps *ProxyServer) installPath() {
+	cfg := &server.Config{
+		LegacyAPIGroupPrefixes: sets.NewString(server.DefaultLegacyAPIPrefix),
+	}
+	resolver := server.NewRequestInfoResolver(cfg)
+	h := filters.WithRequestInfo(ps.handler, resolver)
 	ps.mux.HandleFunc("/healthz", ps.healthz).Methods("GET")
-	ps.mux.PathPrefix("/").Handler(ps.handler)
+	ps.mux.PathPrefix("/").Handler(h)
 }
 
 func (ps *ProxyServer) healthz(w http.ResponseWriter, r *http.Request) {

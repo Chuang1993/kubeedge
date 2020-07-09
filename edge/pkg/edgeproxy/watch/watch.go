@@ -1,53 +1,92 @@
 package watch
 
 import (
-	"github.com/kubeedge/beehive/pkg/core/model"
-	"k8s.io/apimachinery/pkg/runtime"
+	"encoding/json"
+	"fmt"
 	"sync"
+	"time"
+
+	v1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/api/meta"
+	"k8s.io/klog"
+
+	"github.com/kubeedge/beehive/pkg/common/util"
+	"github.com/kubeedge/beehive/pkg/core/model"
+	"github.com/kubeedge/kubeedge/common/constants"
 )
 
-// 直接在sqlite内构建筛选，不是特别合适，考虑自己实现。
-type FilterFunc func(runtime.Object) bool
+var (
+	brocasters sync.Map
+)
 
-type WatchChan struct {
-	// 容量是否为1024？
-	inChan     chan model.Message
-	filterFunc FilterFunc
-	// 是否完成缓存内信息发送，直接接收广播消息
-	ready bool
+func SendMsg(msg model.Message) error {
+	_, msgType, _, err := util.ParseResourceEdge(msg.GetResource(), msg.GetOperation())
+	if err != nil {
+		klog.Error("error")
+		return err
+	}
+	var content []byte
+	switch msg.Content.(type) {
+	case []byte:
+		content = msg.GetContent().([]byte)
+	default:
+		content, err = json.Marshal(msg.Content)
+		if err != nil {
+			klog.Errorf("marshal message content failed: %v", err)
+			return err
+		}
+	}
+
+	if msgType == constants.ResourceTypeService {
+		return sendSingleObject(msg)
+	} else if msgType == constants.ResourceTypeServiceList {
+		var svcs []v1.Service
+		err := json.Unmarshal(content, &svcs)
+		if err != nil {
+			return err
+		}
+		accesser := meta.NewAccessor()
+		for i := range svcs {
+			svc := svcs[i]
+			rv, _ := accesser.ResourceVersion(&svc)
+
+			singmsg := model.NewMessage("").BuildRouter(msg.Router.Source, msg.Router.Group, fmt.Sprintf("%s/%s/%s", svc.Namespace, constants.ResourceTypeService, svc.Name), msg.Router.Operation).SetResourceVersion(rv)
+			singmsg.Content = svc
+			sendSingleObject(*singmsg)
+		}
+
+	}
+
+	return nil
 }
 
-type cacheElement struct {
-	value    []runtime.Object
-	startIdx int
-	capacity int
+func sendSingleObject(msg model.Message) error {
+	_, msgType, _, err := util.ParseResourceEdge(msg.GetResource(), msg.GetOperation())
+	if err != nil {
+		klog.Error("error")
+		return err
+	}
+	var brocaster *MsgBrocaster
+	value, ok := brocasters.Load(msgType)
+	if !ok {
+		brocaster = NewMsgBrocaster()
+		brocasters.Store(msgType, brocaster)
+	} else {
+		brocaster = value.(*MsgBrocaster)
+	}
+	brocaster.Brocast(msg)
+	return nil
 }
 
-func (elem *cacheElement) Add(obj runtime.Object) {
+func AddWatcher(brocastKey string, watcherkey string, resourceVersion uint64, wc IncomingWatcher, timeout time.Duration) {
+	var brocaster *MsgBrocaster
+	value, ok := brocasters.Load(brocastKey)
+	if !ok {
+		brocaster = NewMsgBrocaster()
+		brocasters.Store(brocastKey, brocaster)
+	} else {
+		brocaster = value.(*MsgBrocaster)
+	}
+	brocaster.AddWatcher(watcherkey, wc, timeout, resourceVersion)
 
-}
-
-type WatchMsgMgr struct {
-	// 完成广播，让同一个runtime.Object进入到所有的watcher接口内
-	watchChan map[string][]*WatchChan
-	wcLock    sync.RWMutex
-	// 缓存部分数据，缓存一部分数据，避免list和watch之间间隔，大批量数据被忽略。如果失败，返回异常，让client端重新尝试
-	cache map[string]*cacheElement
-	cLock sync.RWMutex
-}
-
-func (wmm *WatchMsgMgr) SendMsg(msg model.Message) {
-	// TODO add cache& delete experied msg,keep 100 msg only
-	// TODO 完成消息广播
-	wmm.wcLock.RLock()
-	defer wmm.wcLock.RUnlock()
-
-}
-func (wmm *WatchMsgMgr) AddWatcher(resource string, wc *WatchChan) {
-	wmm.wcLock.Lock()
-	defer wmm.wcLock.Unlock()
-	wcs := wmm.watchChan[resource]
-	wcs = append(wcs, wc)
-	wmm.watchChan[resource] = wcs
-	// sendCacheMsg
 }

@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"os"
 
+	"github.com/kubeedge/kubeedge/edge/pkg/edgeproxy"
+
 	"github.com/kubeedge/kubeedge/edge/pkg/edgestream"
 
 	"github.com/mitchellh/go-ps"
@@ -158,4 +160,5 @@ func registerModules(c *v1alpha1.EdgeCoreConfig) {
 	test.Register(c.Modules.DBTest)
 	// Nodte: Need to put it to the end, and wait for all models to register before executing
 	dbm.InitDBConfig(c.DataBase.DriverName, c.DataBase.AliasName, c.DataBase.DataSource)
+	edgeproxy.Register(c.Modules.EdgeProxy)
 }

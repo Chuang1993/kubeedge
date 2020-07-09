@@ -2,18 +2,19 @@ package registry
 
 import (
 	"context"
+
 	metainternalversion "k8s.io/apimachinery/pkg/apis/meta/internalversion"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/watch"
 )
 
-func Registry() {
-	pms := &podMetaStore{}
-	RegistryGetter("pod", pms)
-	RegistryLister("pod", pms)
-	RegistryWatcher("pod", pms)
-}
+//func init() {
+//	pms := &podMetaStore{}
+//	RegistryGetter("pod", pms)
+//	RegistryLister("pod", pms)
+//	RegistryWatcher("pod", pms)
+//}
 
 type podMetaStore struct {
 }

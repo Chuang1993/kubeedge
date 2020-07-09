@@ -65,6 +65,14 @@ func sendToEdgeMesh(message *model.Message, sync bool) {
 	}
 }
 
+func sendToEdgeProxy(message *model.Message, sync bool) {
+	if sync {
+		beehiveContext.SendResp(*message)
+	} else {
+		beehiveContext.Send(modules.EdgeProxyModuleName, *message)
+	}
+}
+
 func sendToCloud(message *model.Message) {
 	beehiveContext.SendToGroup(string(metaManagerConfig.Config.ContextSendGroup), *message)
 }
@@ -192,6 +200,8 @@ func (m *metaManager) processInsert(message model.Message) {
 		// Notify edged
 		sendToEdged(&message, false)
 	}
+	// Notify EdgeProxy
+	sendToEdgeProxy(&message, false)
 
 	resp := message.NewRespByMessage(&message, OK)
 	sendToCloud(resp)
@@ -211,6 +221,9 @@ func (m *metaManager) processUpdate(message model.Message) {
 			return
 		}
 	}
+
+	// Notify EdgeProxy
+	sendToEdgeProxy(&message, false)
 
 	resKey, resType, _ := parseResource(message.GetResource())
 	if resType == constants.ResourceTypeServiceList || resType == constants.ResourceTypeEndpointsList || resType == model.ResourceTypePodlist {
@@ -370,6 +383,8 @@ func (m *metaManager) processResponse(message model.Message) {
 		} else {
 			sendToEdged(&message, message.IsSync())
 		}
+		// Notify EdgeProxy
+		sendToEdgeProxy(&message, false)
 	} else {
 		// Send to cloud if the update request is coming from edged
 		sendToCloud(&message)
@@ -444,6 +459,8 @@ func (m *metaManager) processQuery(message model.Message) {
 		} else {
 			sendToEdged(resp, message.IsSync())
 		}
+		// Notify EdgeProxy
+		sendToEdgeProxy(&message, false)
 	}
 }
 
@@ -491,6 +508,9 @@ func (m *metaManager) processRemoteQuery(message model.Message) {
 		} else {
 			sendToEdged(&resp, message.IsSync())
 		}
+
+		// Notify EdgeProxy
+		sendToEdgeProxy(&message, false)
 
 		respToCloud := message.NewRespByMessage(&resp, OK)
 		sendToCloud(respToCloud)

@@ -1,8 +1,9 @@
 package registry
 
 import (
-	"k8s.io/apiserver/pkg/registry/rest"
 	"sync"
+
+	"k8s.io/apiserver/pkg/registry/rest"
 )
 
 var (
