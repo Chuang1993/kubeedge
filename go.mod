@@ -50,9 +50,18 @@ require (
 	github.com/spf13/cobra v1.0.0
 	github.com/spf13/pflag v1.0.5
 	github.com/stretchr/testify v1.4.0
+<<<<<<< HEAD
 	github.com/vishvananda/netlink v1.1.0
 	golang.org/x/net v0.0.0-20200707034311-ab3426394381
 	google.golang.org/grpc v1.27.0
+=======
+	github.com/vishvananda/netlink v1.0.0
+	github.com/vishvananda/netns v0.0.0-20190625233234-7109fa855b0f // indirect
+	go.uber.org/atomic v1.4.0
+	golang.org/x/net v0.0.0-20191004110552-13f9640d40b9
+	google.golang.org/grpc v1.26.0
+	gopkg.in/square/go-jose.v2 v2.3.1 // indirect
+>>>>>>> 6a5982da (edgeproxy use apiserver init)
 	gopkg.in/yaml.v2 v2.2.8
 	k8s.io/api v0.19.3
 	k8s.io/apiextensions-apiserver v0.19.3
