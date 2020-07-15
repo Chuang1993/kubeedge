@@ -104,7 +104,7 @@ list/get请求：
 
 watch请求：
 
-暂只考虑svc、ep、pod部分内容
+暂只考虑svc、ep、pod等部分内容
 
 响应客户端
 
@@ -141,6 +141,10 @@ watch事件构建
 ### 复用tunnel server方式：
 
 ![img](../images/edgeproxy/tunnel.png)
+
+![img](../images/edgeproxy/tunnel-resp.png)
+
+
 
 相比于API Server代理方式，不直接与API Server通信，通过tunnel server将数据转发到云端，通过云端的服务完成与API Server通信。其他与API Server代理方式一致。
 
