@@ -2,6 +2,9 @@ package local
 
 import (
 	"fmt"
+	"github.com/kubeedge/kubeedge/edge/pkg/edgeproxy/relation"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"net/http"
 	"path"
 	"strconv"
@@ -16,7 +19,6 @@ import (
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	"k8s.io/apiserver/pkg/endpoints/handlers"
 	apirequest "k8s.io/apiserver/pkg/endpoints/request"
-	"k8s.io/client-go/kubernetes/scheme"
 	"k8s.io/klog"
 
 	"github.com/kubeedge/kubeedge/edge/pkg/edgeproxy/cache"
@@ -37,7 +39,12 @@ type Proxy struct {
 func (p *Proxy) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 	ctx := req.Context()
 	reqInfo, _ := apirequest.RequestInfoFrom(ctx)
-	if !util.CanRespResource(reqInfo.Resource) {
+	gr := schema.GroupResource{
+		Group:    reqInfo.APIGroup,
+		Resource: reqInfo.Resource,
+	}.String()
+	_, ok := relation.GetKind(gr)
+	if !ok {
 		p.forbidden(w, req)
 		return
 	}
@@ -73,7 +80,7 @@ func (p *Proxy) forbidden(w http.ResponseWriter, req *http.Request) {
 //when k8s apiserver is accessible, the method will be interrupted.
 func (p *Proxy) watch(w http.ResponseWriter, req *http.Request) {
 	opts := metainternalversion.ListOptions{}
-	err := metainternalversionscheme.ParameterCodec.DecodeParameters(req.URL.Query(), metainternalversion.SchemeGroupVersion, &opts)
+	err := metainternalversionscheme.ParameterCodec.DecodeParameters(req.URL.Query(), metav1.SchemeGroupVersion, &opts)
 	if err != nil {
 		p.Err(err, w, req)
 		return
@@ -114,8 +121,16 @@ func (p *Proxy) watch(w http.ResponseWriter, req *http.Request) {
 func (p *Proxy) list(w http.ResponseWriter, req *http.Request) {
 	ctx := req.Context()
 	reqinfo, _ := apirequest.RequestInfoFrom(ctx)
-	listKind := util.GetReourceList(reqinfo.Resource)
-	gkv := schema.GroupVersionKind{
+	gr := schema.GroupResource{
+		Group:    reqinfo.APIGroup,
+		Resource: reqinfo.Resource,
+	}.String()
+	listKind, ok := relation.GetList(gr)
+	if !ok {
+		p.Err(fmt.Errorf("relation cannot find list kind"), w, req)
+		return
+	}
+	gvk := schema.GroupVersionKind{
 		Group:   reqinfo.APIGroup,
 		Version: reqinfo.APIVersion,
 		Kind:    listKind,
@@ -126,14 +141,11 @@ func (p *Proxy) list(w http.ResponseWriter, req *http.Request) {
 		p.Err(err, w, req)
 		return
 	}
-	listobj, err := scheme.Scheme.New(gkv)
-	if err != nil {
-		p.Err(err, w, req)
-		return
-	}
+	accessor := meta.NewAccessor()
+	listobj := &unstructured.UnstructuredList{}
+	listobj.SetGroupVersionKind(gvk)
 	// iterate objs to get the latest resourceversion
 	listRv := 0
-	accessor := meta.NewAccessor()
 	for i := range objs {
 		rvStr, _ := accessor.ResourceVersion(objs[i])
 		rvInt, _ := strconv.Atoi(rvStr)
@@ -154,7 +166,6 @@ func (p *Proxy) list(w http.ResponseWriter, req *http.Request) {
 		SelfLinkPathSuffix: "",
 		ClusterScoped:      clusterScoped,
 	}
-
 	uri, err := namer.GenerateListLink(req)
 	if err != nil {
 		p.Err(err, w, req)

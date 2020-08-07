@@ -1,6 +1,8 @@
 package remote
 
 import (
+	"github.com/kubeedge/kubeedge/edge/pkg/edgeproxy/relation"
+	"k8s.io/apimachinery/pkg/runtime/schema"
 	"net/http"
 	"net/http/httputil"
 	"net/url"
@@ -37,7 +39,12 @@ func (r *Proxy) modifyResponse(resp *http.Response) error {
 	req := resp.Request
 	ctx := req.Context()
 	reqInfo, _ := apirequest.RequestInfoFrom(ctx)
-	if !util.CanCacheResource(reqInfo.Resource) {
+	groupReource := schema.GroupResource{
+		Group:    reqInfo.APIGroup,
+		Resource: reqInfo.Resource,
+	}.String()
+	_, kindok := relation.GetKind(groupReource)
+	if !kindok {
 		return nil
 	}
 	// Store Resoponse Content-Type Header information to the context

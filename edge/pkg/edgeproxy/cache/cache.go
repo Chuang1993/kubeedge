@@ -5,9 +5,9 @@ import (
 	"compress/gzip"
 	"context"
 	"encoding/json"
-	"io"
-
 	"github.com/astaxie/beego/orm"
+	"github.com/kubeedge/kubeedge/edge/pkg/edgeproxy/relation"
+	"io"
 	"k8s.io/apimachinery/pkg/api/meta"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
@@ -63,7 +63,7 @@ func (cm *Mgr) CacheListObj(ctx context.Context, rc io.ReadCloser) error {
 		Group:   reqInfo.APIGroup,
 		Version: reqInfo.APIVersion,
 	}
-	decoder, err := cm.decoderMgr.GetDecoder(contentType, gv)
+	decoder, err := cm.decoderMgr.GetUnstructuredListDecoder(contentType, gv)
 	if err != nil {
 		return err
 	}
@@ -86,12 +86,30 @@ func (cm *Mgr) CacheListObj(ctx context.Context, rc io.ReadCloser) error {
 		klog.Warningf("response length is 0!")
 		return nil
 	}
+
 	listObj, _, err := decoder.Decode(buf.Bytes(), nil, nil)
 	if err != nil {
 		return err
 	}
+	gr := schema.GroupResource{
+		Group:    reqInfo.APIGroup,
+		Resource: reqInfo.Resource,
+	}.String()
+	if listKind, ok := relation.GetList(gr); !(ok && listKind != "") {
+		listKind, err := accessor.Kind(listObj)
+		if err != nil {
+			klog.Errorf("access list obj kind failed. %v", err)
+		} else {
+			err := relation.UpdateList(gr, listKind)
+			if err != nil {
+				klog.Errorf("update relation list obj kind failed. %v", err)
+			}
+		}
+
+	}
 	meta.EachListItem(listObj, func(object runtime.Object) error {
-		accessor.SetKind(object, util.GetResourceKind(reqInfo.Resource))
+		kind, _ := relation.GetKind(gr)
+		accessor.SetKind(object, kind)
 		accessor.SetAPIVersion(object, apiVersion)
 		if err := cm.cacheSingleObj(ctx, object); err != nil {
 			return err
@@ -108,7 +126,7 @@ func (cm *Mgr) CacheObj(ctx context.Context, rc io.ReadCloser) error {
 		Group:   reqInfo.APIGroup,
 		Version: reqInfo.APIVersion,
 	}
-	decoder, err := cm.decoderMgr.GetDecoder(contentType, gv)
+	decoder, err := cm.decoderMgr.GetUnstructuredDecoder(contentType, gv)
 	if err != nil {
 		return err
 	}
@@ -126,7 +144,12 @@ func (cm *Mgr) CacheObj(ctx context.Context, rc io.ReadCloser) error {
 	if err != nil {
 		return err
 	}
-	accessor.SetKind(obj, util.GetResourceKind(reqInfo.Resource))
+	gr := schema.GroupResource{
+		Group:    reqInfo.APIGroup,
+		Resource: reqInfo.Resource,
+	}.String()
+	kind, _ := relation.GetKind(gr)
+	accessor.SetKind(obj, kind)
 	accessor.SetAPIVersion(obj, apiVersion)
 	cm.cacheSingleObj(ctx, obj)
 	return nil
@@ -162,7 +185,7 @@ func (cm *Mgr) CacheWatchObj(ctx context.Context, rc io.ReadCloser) error {
 		Group:   reqInfo.APIGroup,
 		Version: reqInfo.APIVersion,
 	}
-	watchDecoder, err := cm.decoderMgr.GetStreamDecoder(contentType, gv, rc)
+	watchDecoder, err := cm.decoderMgr.GetUnstructuredStreamDecoder(contentType, gv, rc)
 	if err != nil {
 		return err
 	}
@@ -217,7 +240,7 @@ func (cm *Mgr) QueryList(ctx context.Context, ua, resource, namespace string) ([
 		Group:   reqInfo.APIGroup,
 		Version: reqInfo.APIVersion,
 	}
-	objDecoder, err := cm.decoderMgr.GetDecoder(contentType, gv)
+	objDecoder, err := cm.decoderMgr.GetUnstructuredDecoder(contentType, gv)
 	if err != nil {
 		return nil, err
 	}
@@ -242,7 +265,7 @@ func (cm *Mgr) QueryObj(ctx context.Context, ua, resource, namespace, name strin
 		Group:   reqInfo.APIGroup,
 		Version: reqInfo.APIVersion,
 	}
-	objDecoder, err := cm.decoderMgr.GetDecoder(contentType, gv)
+	objDecoder, err := cm.decoderMgr.GetUnstructuredDecoder(contentType, gv)
 	if err != nil {
 		return nil, err
 	}

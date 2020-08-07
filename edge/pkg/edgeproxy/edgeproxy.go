@@ -8,6 +8,7 @@ import (
 	"github.com/kubeedge/kubeedge/edge/pkg/edgeproxy/config"
 	"github.com/kubeedge/kubeedge/edge/pkg/edgeproxy/decoder"
 	"github.com/kubeedge/kubeedge/edge/pkg/edgeproxy/proxy"
+	"github.com/kubeedge/kubeedge/edge/pkg/edgeproxy/relation"
 	"github.com/kubeedge/kubeedge/edge/pkg/edgeproxy/server"
 	"github.com/kubeedge/kubeedge/pkg/apis/componentconfig/edgecore/v1alpha1"
 )
@@ -19,6 +20,7 @@ func Register(ep *v1alpha1.EdgePorxy) {
 	epModule := newEdgeProxy(ep.Enable)
 	core.Register(epModule)
 	cache.InitDBTable(epModule)
+	relation.InitDBTable(epModule)
 }
 
 func newEdgeProxy(enable bool) *edgeProxy {
@@ -40,6 +42,7 @@ func (e *edgeProxy) Group() string {
 }
 
 func (e *edgeProxy) Start() {
+	relation.Init()
 	decoderMgr := decoder.DefaultDecoderMgr
 	cacheMgr := cache.NewCacheMgr(decoderMgr)
 	healthzChecker := checker.NewHealthzChecker(config.Config.RemoteAddr)

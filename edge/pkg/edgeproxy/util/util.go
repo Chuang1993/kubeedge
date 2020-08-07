@@ -49,41 +49,41 @@ func GetAppUserAgent(ctx context.Context) (string, bool) {
 	return ua, ok
 }
 
-var (
-	resourceToKind = map[string]string{
-		"nodes":      "Node",
-		"pods":       "Pod",
-		"services":   "Service",
-		"namespaces": "Namespace",
-		"endpoints":  "Endpoints",
-		"configmaps": "ConfigMap",
-		"secrets":    "Secret",
-	}
-	resourceToList = map[string]string{
-		"nodes":      "NodeList",
-		"pods":       "PodList",
-		"services":   "ServiceList",
-		"namespaces": "NamespaceList",
-		"endpoints":  "EndpointsList",
-		"configmaps": "ConfigMapList",
-		"secrets":    "SecretList",
-	}
-)
-
-func CanCacheResource(resource string) bool {
-	_, ok := resourceToKind[resource]
-	return ok
-}
-
-func CanRespResource(resource string) bool {
-	_, ok := resourceToList[resource]
-	return ok
-}
-
-func GetResourceKind(resource string) string {
-	return resourceToKind[resource]
-}
-
-func GetReourceList(resource string) string {
-	return resourceToList[resource]
-}
+//var (
+//	resourceToKind = map[string]string{
+//		"nodes":      "Node",
+//		"pods":       "Pod",
+//		"services":   "Service",
+//		"namespaces": "Namespace",
+//		"endpoints":  "Endpoints",
+//		"configmaps": "ConfigMap",
+//		"secrets":    "Secret",
+//	}
+//	resourceToList = map[string]string{
+//		"nodes":      "NodeList",
+//		"pods":       "PodList",
+//		"services":   "ServiceList",
+//		"namespaces": "NamespaceList",
+//		"endpoints":  "EndpointsList",
+//		"configmaps": "ConfigMapList",
+//		"secrets":    "SecretList",
+//	}
+//)
+//
+//func CanCacheResource(resource string) bool {
+//	_, ok := resourceToKind[resource]
+//	return ok
+//}
+//
+//func CanRespResource(resource string) bool {
+//	_, ok := resourceToList[resource]
+//	return ok
+//}
+//
+//func GetResourceKind(resource string) string {
+//	return resourceToKind[resource]
+//}
+//
+//func GetReourceList(resource string) string {
+//	return resourceToList[resource]
+//}
