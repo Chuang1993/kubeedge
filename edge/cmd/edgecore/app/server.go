@@ -3,7 +3,6 @@ package app
 import (
 	"errors"
 	"fmt"
-	"os"
 
 	"github.com/kubeedge/kubeedge/edge/pkg/edgeproxy"
 	"github.com/kubeedge/kubeedge/edge/pkg/edgestream"
