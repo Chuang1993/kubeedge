@@ -3,6 +3,7 @@ package decoder
 import (
 	"errors"
 	"io"
+	"k8s.io/apimachinery/pkg/runtime/serializer/json"
 
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
@@ -19,6 +20,8 @@ type Manager interface {
 	GetDecoder(contentType string, gv schema.GroupVersion) (runtime.Decoder, error)
 	// generate watch decoder based on contentType, groupVersion and readCloser
 	GetStreamDecoder(contentType string, gv schema.GroupVersion, rc io.ReadCloser) (watch.Decoder, error)
+
+	GetBackendSerializer() runtime.Serializer
 }
 
 var DefaultDecoderMgr = &mgr{
@@ -56,4 +59,9 @@ func (dm *mgr) GetStreamDecoder(contentType string, gv schema.GroupVersion, rc i
 	watchEventDecoder := streaming.NewDecoder(frameReader, info.StreamSerializer)
 	watchDecoder := restclientwatch.NewDecoder(watchEventDecoder, objDecoder)
 	return watchDecoder, nil
+}
+
+func (dm *mgr) GetBackendSerializer() runtime.Serializer {
+	serializer := json.NewSerializerWithOptions(json.DefaultMetaFactory, scheme.Scheme, scheme.Scheme, json.SerializerOptions{false, false, false})
+	return serializer
 }
