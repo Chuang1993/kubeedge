@@ -67,7 +67,7 @@ func (r *Proxy) modifyResponse(resp *http.Response) error {
 		go func() {
 			var err error
 			drc := wrapped.DupReadCloser()
-			// When the list response body is compressed with gzip, use gzip.Reader to read
+			//When the response uses gzip compression, use gzip.Reader to read the response body
 			algo, _ := util.GetRespContentEncoding(ctx)
 			if algo == "gzip" {
 				drc, err = gzip.NewReader(drc)
