@@ -476,4 +476,6 @@ type EdgePorxy struct {
 	// HealthzCheck execution timeout
 	// default 3
 	HealthzCheckTimeout int `json:"checkTimeout,omitempty"`
+	//  Kubernetes Server Version string,to support some application access /version api in offline mode
+	KubernetesServerVersion string `json:"kubernetesServerVersion,omitempty"`
 }
