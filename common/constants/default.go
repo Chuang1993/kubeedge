@@ -83,6 +83,7 @@ const (
 	DefaultQueryNodeWorkers                  = 4
 	DefaultUpdateNodeWorkers                 = 4
 	DefaultDeletePodWorkers                  = 4
+	DefaultQueryAPIResourceWorkers           = 4
 
 	DefaultUpdatePodStatusBuffer            = 1024
 	DefaultUpdateNodeStatusBuffer           = 1024
@@ -96,6 +97,7 @@ const (
 	DefaultQueryNodeBuffer                  = 1024
 	DefaultUpdateNodeBuffer                 = 1024
 	DefaultDeletePodBuffer                  = 1024
+	DefaultQueryAPIResourceBuffer           = 1024
 
 	DefaultContextSendModuleName = "cloudhub"
 
