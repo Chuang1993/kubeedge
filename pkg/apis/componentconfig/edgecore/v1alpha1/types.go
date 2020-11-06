@@ -476,4 +476,7 @@ type EdgePorxy struct {
 	// HealthzCheck execution timeout
 	// default 3
 	HealthzCheckTimeout int `json:"checkTimeout,omitempty"`
+	// CacheDataPath cache data path
+	// default /var/lib/kubeedge/cache
+	CacheDataPath string `json:"cacheDataPath,omitempty"`
 }
