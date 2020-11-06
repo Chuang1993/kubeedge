@@ -479,4 +479,6 @@ type EdgePorxy struct {
 	// CacheDataPath cache data path
 	// default /var/lib/kubeedge/cache
 	CacheDataPath string `json:"cacheDataPath,omitempty"`
+	//  Kubernetes Server Version string,to support some application access /version api in offline mode
+	KubernetesServerVersion string `json:"kubernetesServerVersion,omitempty"`
 }
