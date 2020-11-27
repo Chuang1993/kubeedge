@@ -13,6 +13,7 @@ import (
 
 	beehiveContext "github.com/kubeedge/beehive/pkg/core/context"
 	beehiveModel "github.com/kubeedge/beehive/pkg/core/model"
+	"github.com/kubeedge/kubeedge/cloud/pkg/apis/reliablesyncs/v1alpha1"
 	"github.com/kubeedge/kubeedge/cloud/pkg/cloudhub/common/model"
 	hubconfig "github.com/kubeedge/kubeedge/cloud/pkg/cloudhub/config"
 	"github.com/kubeedge/kubeedge/cloud/pkg/common/modules"
@@ -35,9 +36,24 @@ type ChannelMessageQueue struct {
 
 // NewChannelMessageQueue initializes a new ChannelMessageQueue
 func NewChannelMessageQueue(objectSyncController *hubconfig.ObjectSyncController) *ChannelMessageQueue {
-	return &ChannelMessageQueue{
+	q := &ChannelMessageQueue{
 		ObjectSyncController: objectSyncController,
 	}
+	syncInfomer := q.ObjectSyncController.ObjectSyncInformer.Informer()
+	syncInfomer.AddEventHandler(cache.ResourceEventHandlerFuncs{
+		AddFunc: func(obj interface{}) {
+			q.syncObjectMessage(obj, false)
+		},
+		UpdateFunc: func(oldObj, newObj interface{}) {
+			q.syncObjectMessage(newObj, false)
+		},
+		DeleteFunc: func(obj interface{}) {
+			q.syncObjectMessage(obj, true)
+		},
+	})
+	neverStop := make(chan struct{})
+	go syncInfomer.Run(neverStop)
+	return q
 }
 
 // DispatchMessage gets the message from the cloud, extracts the
@@ -68,6 +84,36 @@ func (q *ChannelMessageQueue) DispatchMessage() {
 			q.addMessageToQueue(nodeID, &msg)
 		}
 	}
+}
+
+func (q *ChannelMessageQueue) syncObjectMessage(obj interface{}, isDelete bool) {
+	objectsync := obj.(*v1alpha1.ObjectSync)
+	nodeid := getNodeName(objectsync.Name)
+	queen := q.GetNodeQueue(nodeid)
+	store := q.GetNodeStore(nodeid)
+	msgkey := strings.Join([]string{objectsync.Spec.ObjectKind, objectsync.Namespace, objectsync.Spec.ObjectName}, "/")
+	item, exist, _ := store.GetByKey(msgkey)
+	if !exist {
+		return
+	}
+	msg := item.(*beehiveModel.Message)
+	if msg.GetResourceVersion() == "" {
+		return
+	}
+	if synccontroller.CompareResourceVersion(msg.GetResourceVersion(), objectsync.Status.ObjectResourceVersion) <= 0 || isDelete {
+		queen.Forget(msgkey)
+		queen.Done(msgkey)
+		if err := store.Delete(item); err != nil {
+			klog.Errorf("forget successful msg error! %v", err)
+			return
+		}
+		klog.Infof("message %s to node %s has been successfully! sync it to nodequeen and nodesotre", msgkey, nodeid)
+	}
+}
+
+func getNodeName(syncName string) string {
+	tmps := strings.Split(syncName, ".")
+	return strings.Join(tmps[:len(tmps)-1], ".")
 }
 
 func (q *ChannelMessageQueue) addListMessageToQueue(nodeID string, msg *beehiveModel.Message) {
