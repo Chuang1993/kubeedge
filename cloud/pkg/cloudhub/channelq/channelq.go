@@ -92,15 +92,28 @@ func (q *ChannelMessageQueue) syncObjectMessage(obj interface{}, isDelete bool) 
 	queen := q.GetNodeQueue(nodeid)
 	store := q.GetNodeStore(nodeid)
 	msgkey := strings.Join([]string{objectsync.Spec.ObjectKind, objectsync.Namespace, objectsync.Spec.ObjectName}, "/")
-	item, exist, _ := store.GetByKey(msgkey)
+	item, exist, err := store.GetByKey(msgkey)
+	if err != nil {
+		klog.Errorf("get msg from nodestore failed with error: %+v, msgkey %s", err, msgkey)
+		return
+	}
 	if !exist {
 		return
 	}
-	msg := item.(*beehiveModel.Message)
-	if msg.GetResourceVersion() == "" {
+	if item == nil {
+		klog.Errorf("get msg from nodestore failed. item is nil. msgkey: %s", msgkey)
 		return
 	}
-	if synccontroller.CompareResourceVersion(msg.GetResourceVersion(), objectsync.Status.ObjectResourceVersion) <= 0 || isDelete {
+
+	msg := item.(*beehiveModel.Message)
+	msgrv := msg.GetResourceVersion()
+	if msgrv == "" {
+		return
+	}
+	if objectsync.Status.ObjectResourceVersion == "" {
+		return
+	}
+	if synccontroller.CompareResourceVersion(msgrv, objectsync.Status.ObjectResourceVersion) <= 0 || isDelete {
 		queen.Forget(msgkey)
 		queen.Done(msgkey)
 		if err := store.Delete(item); err != nil {
