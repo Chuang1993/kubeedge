@@ -437,12 +437,18 @@ func (mh *MessageHandle) MessageWriteLoop(info *model.HubInfo, stopServe chan Ex
 
 		copyMsg := deepcopy(msg)
 		trimMessage(msg)
-
+		connnnected:=true
 		for {
 			conn, ok := mh.nodeConns.Load(info.NodeID)
 			if !ok {
+				connnnected=false
 				time.Sleep(time.Second * 2)
 				continue
+			}
+			if !connnnected{
+				nodeQueue.Add(key.(string))
+				connnnected=true
+				break
 			}
 			err := mh.sendMsg(conn.(hubio.CloudHubIO), info, msg, copyMsg, nodeStore)
 			if err != nil {
