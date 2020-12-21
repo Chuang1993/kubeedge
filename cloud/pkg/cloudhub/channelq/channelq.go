@@ -87,9 +87,14 @@ func (q *ChannelMessageQueue) DispatchMessage() {
 }
 
 func (q *ChannelMessageQueue) syncObjectMessage(obj interface{}, isDelete bool) {
+	defer func() {
+		if r := recover(); r != nil {
+			klog.Errorf("error %+v", r)
+		}
+	}()
 	objectsync := obj.(*v1alpha1.ObjectSync)
 	nodeid := getNodeName(objectsync.Name)
-	queen := q.GetNodeQueue(nodeid)
+	//queen := q.GetNodeQueue(nodeid)
 	store := q.GetNodeStore(nodeid)
 	msgkey := strings.Join([]string{objectsync.Spec.ObjectKind, objectsync.Namespace, objectsync.Spec.ObjectName}, "/")
 	item, exist, err := store.GetByKey(msgkey)
@@ -106,6 +111,7 @@ func (q *ChannelMessageQueue) syncObjectMessage(obj interface{}, isDelete bool) 
 	}
 
 	msg := item.(*beehiveModel.Message)
+
 	msgrv := msg.GetResourceVersion()
 	if msgrv == "" {
 		return
@@ -114,8 +120,8 @@ func (q *ChannelMessageQueue) syncObjectMessage(obj interface{}, isDelete bool) 
 		return
 	}
 	if synccontroller.CompareResourceVersion(msgrv, objectsync.Status.ObjectResourceVersion) <= 0 || isDelete {
-		queen.Forget(msgkey)
-		queen.Done(msgkey)
+		//queen.Forget(msgkey)
+		//queen.Done(msgkey)
 		if err := store.Delete(item); err != nil {
 			klog.Errorf("forget successful msg error! %v", err)
 			return
