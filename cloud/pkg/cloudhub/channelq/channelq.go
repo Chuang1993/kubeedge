@@ -51,8 +51,6 @@ func NewChannelMessageQueue(objectSyncController *hubconfig.ObjectSyncController
 			q.syncObjectMessage(obj, true)
 		},
 	})
-	neverStop := make(chan struct{})
-	go syncInfomer.Run(neverStop)
 	return q
 }
 
