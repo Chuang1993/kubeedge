@@ -1,6 +1,7 @@
 package manager
 
 import (
+	"github.com/kubeedge/kubeedge/cloud/pkg/edgecontroller/factory"
 	v1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/fields"
 	"k8s.io/apimachinery/pkg/watch"
@@ -24,7 +25,7 @@ func (sm *EndpointsManager) Events() chan watch.Event {
 func NewEndpointsManager(kubeClient *kubernetes.Clientset, namespace string) (*EndpointsManager, error) {
 	lw := cache.NewListWatchFromClient(kubeClient.CoreV1().RESTClient(), "endpoints", namespace, fields.Everything())
 	events := make(chan watch.Event, config.Config.Buffer.EndpointsEvent)
-	rh := NewCommonResourceEventHandler(events)
+	rh := factory.NewCommonResourceEventHandler(events)
 	si := cache.NewSharedInformer(lw, &v1.Endpoints{}, 0)
 	si.AddEventHandler(rh)
 	stopNever := make(chan struct{})

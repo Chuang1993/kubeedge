@@ -1,6 +1,7 @@
 package manager
 
 import (
+	"github.com/kubeedge/kubeedge/cloud/pkg/edgecontroller/factory"
 	"reflect"
 	"sync"
 
@@ -90,7 +91,7 @@ func NewPodManager(kubeClient *kubernetes.Clientset, namespace, nodeName string)
 	}
 	realEvents := make(chan watch.Event, config.Config.Buffer.PodEvent)
 	mergedEvents := make(chan watch.Event, config.Config.Buffer.PodEvent)
-	rh := NewCommonResourceEventHandler(realEvents)
+	rh := factory.NewCommonResourceEventHandler(realEvents)
 	si := cache.NewSharedInformer(lw, &v1.Pod{}, 0)
 	si.AddEventHandler(rh)
 

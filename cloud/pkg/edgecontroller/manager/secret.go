@@ -1,6 +1,7 @@
 package manager
 
 import (
+	"github.com/kubeedge/kubeedge/cloud/pkg/edgecontroller/factory"
 	v1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/fields"
 	"k8s.io/apimachinery/pkg/watch"
@@ -24,7 +25,7 @@ func (sm *SecretManager) Events() chan watch.Event {
 func NewSecretManager(kubeClient *kubernetes.Clientset, namespace string) (*SecretManager, error) {
 	lw := cache.NewListWatchFromClient(kubeClient.CoreV1().RESTClient(), "secrets", namespace, fields.Everything())
 	events := make(chan watch.Event, config.Config.Buffer.SecretEvent)
-	rh := NewCommonResourceEventHandler(events)
+	rh := factory.NewCommonResourceEventHandler(events)
 	si := cache.NewSharedInformer(lw, &v1.Secret{}, 0)
 	si.AddEventHandler(rh)
 	stopNever := make(chan struct{})

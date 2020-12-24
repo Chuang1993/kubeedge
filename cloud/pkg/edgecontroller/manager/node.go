@@ -1,6 +1,7 @@
 package manager
 
 import (
+	"github.com/kubeedge/kubeedge/cloud/pkg/edgecontroller/factory"
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
@@ -33,7 +34,7 @@ func NewNodesManager(kubeClient *kubernetes.Clientset, namespace string) (*Nodes
 	}
 	lw := cache.NewFilteredListWatchFromClient(kubeClient.CoreV1().RESTClient(), "nodes", namespace, optionModifier)
 	events := make(chan watch.Event)
-	rh := NewCommonResourceEventHandler(events)
+	rh := factory.NewCommonResourceEventHandler(events)
 	si := cache.NewSharedInformer(lw, &v1.Node{}, 0)
 	si.AddEventHandler(rh)
 	stopNever := make(chan struct{})

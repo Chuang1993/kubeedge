@@ -1,4 +1,4 @@
-package manager
+package factory
 
 import (
 	"k8s.io/apimachinery/pkg/runtime"

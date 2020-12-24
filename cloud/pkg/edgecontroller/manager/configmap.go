@@ -1,6 +1,7 @@
 package manager
 
 import (
+	"github.com/kubeedge/kubeedge/cloud/pkg/edgecontroller/factory"
 	v1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/fields"
 	"k8s.io/apimachinery/pkg/watch"
@@ -24,7 +25,7 @@ func (cmm *ConfigMapManager) Events() chan watch.Event {
 func NewConfigMapManager(kubeClient *kubernetes.Clientset, namespace string) (*ConfigMapManager, error) {
 	lw := cache.NewListWatchFromClient(kubeClient.CoreV1().RESTClient(), "configmaps", namespace, fields.Everything())
 	events := make(chan watch.Event, config.Config.Buffer.ConfigMapEvent)
-	rh := NewCommonResourceEventHandler(events)
+	rh := factory.NewCommonResourceEventHandler(events)
 	si := cache.NewSharedInformer(lw, &v1.ConfigMap{}, 0)
 	si.AddEventHandler(rh)
 	stopNever := make(chan struct{})
